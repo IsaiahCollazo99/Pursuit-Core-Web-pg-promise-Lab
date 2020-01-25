@@ -4,7 +4,7 @@ const {db} = require("./../db");
 
 router.get('/all', async (req, res) => {
   res.json({
-    posts: await db.any("SELECT * FROM posts"),
+    posts: await db.any("SELECT * FROM posts INNER JOIN users ON posts.poster_id=users.id"),
     message: "All posts successfully retrieved",
     timestamp: new Date().toString()
   })
@@ -12,11 +12,11 @@ router.get('/all', async (req, res) => {
 
 router.get('/:user_id', async (req, res) => {
   let {user_id} = req.params;
-  let userPosts = await db.any("SELECT * FROM posts WHERE poster_id=$1", user_id);
+  let userPosts = await db.any("SELECT * FROM posts INNER JOIN users ON posts.poster_id=users.id WHERE poster_id=$1", user_id);
   
   if(userPosts.length) {
     res.json({
-      userPosts,
+      posts: userPosts,
       message: "All posts successfully retrieved",
       timestamp: new Date().toString()
     })
@@ -28,8 +28,16 @@ router.get('/:user_id', async (req, res) => {
   }
 });
 
-router.post('/register', (req, res) => {
-  res.send('Creating new post!');
+router.post('/register', async (req, res) => {
+    let {poster_id, body} = req.body;
+    let savedPost = await db.one("INSERT INTO posts (poster_id, body) VALUES ($1, $2) RETURNING *", [poster_id, body]);
+
+    res.json({
+      post: savedPost,
+      message: "Post made",
+      timestamp: new Date().toString()
+    })
+
 });
 
 module.exports = router;
